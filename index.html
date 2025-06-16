@@ -29,39 +29,40 @@
     <!-- Scanner Area -->
     <div class="p-6">
       <div id="reader" class="w-full aspect-square bg-black rounded-lg overflow-hidden"></div>
-      <div id="message" class="mt-4 text-center text-base min-h-[1.25rem]"></div>
+      <div id="message" class="mt-4 text-center text-base min-h-[1.25rem] text-slate-300"></div>
       <button id="restart"
-              class="mt-6 w-full py-3 bg-amber-700 hover:bg-amber-600 text-white font-semibold rounded-lg transition"
-              style="display: none;">
-        Scan Lagi
+              class="mt-6 w-full py-3 bg-gradient-to-r from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-semibold rounded-full shadow-lg transform hover:scale-105 transition">
+        Scan Ulang
       </button>
     </div>
   </div>
 
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyHRpoWs7NW74gqRtxnzZtkL8t05ysCUNHHTstpkpCSzKD9KVYrGubaQIGBTJABsa_j/exec";
-    let scanner;
+    let html5Qr;
 
     function showMessage(text, type) {
       const m = document.getElementById('message');
       m.innerText = text;
-      m.className = `mt-4 text-center text-base min-h-[1.25rem] ${
-        type==='success' ? 'text-green-400' :
-        type==='warning' ? 'text-amber-300' :
-        type==='error'   ? 'text-red-400' : 'text-slate-300'
-      }`;
+      m.className = [
+        'mt-4 text-center text-base min-h-[1.25rem]',
+        type === 'success' ? 'text-green-400' :
+        type === 'warning' ? 'text-amber-300' :
+        type === 'error'   ? 'text-red-400' :
+                            'text-slate-300'
+      ].join(' ');
     }
 
     function onScanSuccess(decodedText) {
       showMessage("🔍 Memproses: " + decodedText, 'success');
-      scanner.clear().then(() => {
+      html5Qr.stop().then(() => {
         fetch(`${SCRIPT_URL}?action=checkIn&guestId=${encodeURIComponent(decodedText)}`)
           .then(r => r.json())
           .then(data => {
-            if (data.status === 'success')      showMessage(data.message, 'success');
+            if (data.status === 'success')         showMessage(data.message, 'success');
             else if (data.status === 'already_scanned') showMessage(data.message, 'warning');
-            else if (data.status === 'not_found')      showMessage(data.message, 'error');
-            else showMessage('Respon tak terduga: '+data.message, 'error');
+            else if (data.status === 'not_found')       showMessage(data.message, 'error');
+            else                               showMessage('Respon tak terduga: '+data.message, 'error');
           })
           .catch(e => showMessage('Error jaringan: '+e, 'error'))
           .finally(() => {
@@ -71,19 +72,23 @@
     }
 
     function onScanError(err) {
-      // biasa diabaikan sampai QR terbaca
+      // parse errors are expected until a QR is detected
     }
 
     function initScanner() {
       showMessage('', '');
       document.getElementById('restart').style.display = 'none';
 
-      scanner = new Html5QrcodeScanner(
-        "reader",
-        { fps: 10 },  // tanpa qrbox untuk scan full frame
-        false
-      );
-      scanner.render(onScanSuccess, onScanError);
+      html5Qr = new Html5Qrcode("reader");
+      // langsung pakai kamera belakang
+      html5Qr.start(
+        { facingMode: { exact: "environment" } },
+        { fps: 10 },
+        onScanSuccess,
+        onScanError
+      ).catch(err => {
+        showMessage("Gagal akses kamera: " + err, 'error');
+      });
     }
 
     document.getElementById('restart').addEventListener('click', initScanner);
