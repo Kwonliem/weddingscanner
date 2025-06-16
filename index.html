@@ -54,7 +54,7 @@
     }
 
     function onScanSuccess(decodedText) {
-      showMessage("Wait: " + decodedText, 'success');
+      showMessage("🔍 Memproses: " + decodedText, 'success');
       html5Qr.stop().then(() => {
         fetch(`${SCRIPT_URL}?action=checkIn&guestId=${encodeURIComponent(decodedText)}`)
           .then(r => r.json())
