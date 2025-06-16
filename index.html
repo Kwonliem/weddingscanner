@@ -1,58 +1,68 @@
 <!DOCTYPE html>
 <html lang="id" class="scroll-smooth bg-[#080e12] text-slate-100">
 <head>
-  <!-- ... meta, tailwind, font ... -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Check-In QR • Liem & Nita</title>
 
-  <!-- SweetAlert2 -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Tailwind CSS & Font -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Parisienne&family=Poppins:wght@300;400;600;700&display=swap" 
+        rel="stylesheet"/>
+
   <!-- HTML5 QR Code lib -->
   <script src="https://unpkg.com/html5-qrcode@2.3.7/html5-qrcode.min.js"></script>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-6">
-  <!-- … card container … -->
 
-  <!-- Scanner Area -->
-  <div class="p-6">
-    <div id="reader" class="w-full aspect-square bg-black rounded-lg overflow-hidden"></div>
-    <!-- message div bisa dihapus atau dikomentari -->
-    <!-- <div id="message" …></div> -->
-    <button id="restart" …>Scan Ulang</button>
+  <!-- Card Container -->
+  <div class="w-full max-w-md bg-slate-900/50 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden">
+    <!-- Header -->
+    <div class="bg-[#080e12]/80 px-6 py-4 text-center">
+      <p class="text-sm uppercase tracking-widest text-amber-300">The Wedding Of</p>
+      <h1 class="font-['Parisienne'] text-5xl text-amber-200 mt-1">Liem &amp; Nita</h1>
+      <p class="text-xs text-slate-400 mt-1">08 . 06 . 2026</p>
+    </div>
+
+    <!-- Scanner Area -->
+    <div class="p-6">
+      <div id="reader" class="w-full aspect-square bg-black rounded-lg overflow-hidden"></div>
+      <div id="message" class="mt-4 text-center text-base min-h-[1.25rem] text-slate-300"></div>
+      <button id="restart"
+              class="mt-6 w-full py-3 bg-gradient-to-r from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-semibold rounded-full shadow-lg transform hover:scale-105 transition">
+        Scan Ulang
+      </button>
+    </div>
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/…";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyHRpoWs7NW74gqRtxnzZtkL8t05ysCUNHHTstpkpCSzKD9KVYrGubaQIGBTJABsa_j/exec";
     let html5Qr;
 
     function showMessage(text, type) {
-      let icon;
-      switch(type) {
-        case 'success': icon = 'success'; break;
-        case 'warning': icon = 'warning'; break;
-        case 'error':   icon = 'error';   break;
-        default:        icon = 'info';    break;
-      }
-      Swal.fire({
-        icon,
-        title: text,
-        confirmButtonColor: '#F59E0B',
-        confirmButtonText: 'OK'
-      });
+      const m = document.getElementById('message');
+      m.innerText = text;
+      m.className = [
+        'mt-4 text-center text-base min-h-[1.25rem]',
+        type === 'success' ? 'text-green-400' :
+        type === 'warning' ? 'text-amber-300' :
+        type === 'error'   ? 'text-red-400' :
+                            'text-slate-300'
+      ].join(' ');
     }
 
     function onScanSuccess(decodedText) {
-      showMessage("Wait: " + decodedText, 'info');
+      showMessage("Wait: " + decodedText, 'success');
       html5Qr.stop().then(() => {
         fetch(`${SCRIPT_URL}?action=checkIn&guestId=${encodeURIComponent(decodedText)}`)
           .then(r => r.json())
           .then(data => {
-            if (data.status === 'success')
-              showMessage(data.message, 'success');
-            else if (data.status === 'already_scanned')
-              showMessage(data.message, 'warning');
-            else if (data.status === 'not_found')
-              showMessage(data.message, 'error');
-            else
-              showMessage('Respon tak terduga: '+data.message, 'error');
+            if (data.status === 'success')         showMessage(data.message, 'success');
+            else if (data.status === 'already_scanned') showMessage(data.message, 'warning');
+            else if (data.status === 'not_found')       showMessage(data.message, 'error');
+            else                               showMessage('Respon tak terduga: '+data.message, 'error');
           })
           .catch(e => showMessage('Error jaringan: '+e, 'error'))
           .finally(() => {
@@ -61,13 +71,16 @@
       });
     }
 
-    function onScanError(err) { /* … */ }
+    function onScanError(err) {
+      // parse errors are expected until a QR is detected
+    }
 
     function initScanner() {
-      // showMessage('', '');  // nggak perlu reset div
+      showMessage('', '');
       document.getElementById('restart').style.display = 'none';
 
       html5Qr = new Html5Qrcode("reader");
+      // langsung pakai kamera belakang
       html5Qr.start(
         { facingMode: { exact: "environment" } },
         { fps: 10 },
